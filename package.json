@@ -1,0 +1,45 @@
+{
+  "name": "homebridge-airtouch2plus-platform",
+  "version": "0.0.2",
+  "description": "Plugin for homebridge to connect to Airtouch2+ AC controller",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "config.sample.json"
+  ],
+  "keywords": [
+    "homebridge-plugin",
+    "airtouch",
+    "air conditioner"
+  ],
+  "author": "lee hadassin <leehadassin@gmail.com>",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jansen611/Homebridge-Airtouch2Plus.git"
+  },
+  "engines": {
+    "homebridge": "^2.4.0",
+    "node": "^22 || ^24 || ^26"
+  },
+  "dependencies": {
+    "node-persist": "^2.1.0",
+    "fakegato-history": "^0.5.6"
+  },
+  "bugs": {
+    "url": "https://github.com/Jansen611/Homebridge-Airtouch2Plus/issues"
+  },
+  "homepage": "https://github.com/Jansen611/Homebridge-Airtouch2Plus#readme",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "homebridge": "2.4.0",
+    "typescript": "~5.9.3"
+  }
+}

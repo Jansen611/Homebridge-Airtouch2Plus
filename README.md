@@ -27,21 +27,33 @@ npm ci
 npm pack
 ```
 
-Copy the resulting `homebridge-airtouch2plus-platform-0.0.2.tgz` into the Homebridge environment and install it there:
+Copy the resulting `homebridge-airtouch2plus-0.0.2.tgz` into the Homebridge environment and install it there:
 
 ```bash
-npm install -g /path/to/homebridge-airtouch2plus-platform-0.0.2.tgz
+npm install -g /path/to/homebridge-airtouch2plus-0.0.2.tgz
 ```
 
 This package contains the compiled `dist/` files; TypeScript and Homebridge are development dependencies and are not installed as runtime dependencies. GitHub's automatically generated source archives do not include `dist/` and are not precompiled installation packages.
 
-The registry package `homebridge-airtouch2plus-platform@0.0.1` is the original version. Installing it from the registry again replaces this fork.
+This fork is named `homebridge-airtouch2plus`. The original registry package is `homebridge-airtouch2plus-platform@0.0.1`. They are separate packages, and both register the `Airtouch2` platform, so only one should be loaded when Homebridge restarts.
 
 ### Upgrading an existing installation
 
-After the fixes have been pushed to this repository, run the installation command above. The package name and platform name (`Airtouch2`) remain the same. Keep your current `ip_address`, `units`, and `_bridge` settings, including the child bridge username and port.
+After this rename has been pushed, install the new package and remove the old package before restarting Homebridge. Use npm in the Homebridge terminal so your existing platform configuration is retained.
 
-Accessory names, accessory UUIDs and the custom Spill/Timer UUIDs are preserved so existing cached accessories can be restored. There is no cache reset or HomeKit re-pairing step in this upgrade procedure.
+For the Docker installation that loads plugins from `/homebridge/node_modules`, run:
+
+```bash
+npm install --prefix /homebridge --omit=dev "git+https://github.com/Jansen611/Homebridge-Airtouch2Plus.git#main"
+npm uninstall --prefix /homebridge homebridge-airtouch2plus-platform
+node -p "require('/homebridge/node_modules/homebridge-airtouch2plus/package.json').name"
+```
+
+The final command should print `homebridge-airtouch2plus`. For a global installation, use `npm install -g` and `npm uninstall -g` instead, keeping both commands in the same installation location.
+
+Keep the platform name as `Airtouch2`, along with your current `ip_address`, `units`, and `_bridge` settings, including the child bridge username and port. If your configuration explicitly qualifies the platform as `homebridge-airtouch2plus-platform.Airtouch2`, change it to `homebridge-airtouch2plus.Airtouch2`. Update any explicit plugin allow/disable lists that reference the old package name.
+
+Restart **Homebridge itself** after changing packages so plugin discovery is refreshed. Homebridge 2.4 can reassociate cached accessories from an absent old plugin to the sole active dynamic platform named `Airtouch2`. Accessory names, accessory UUIDs and custom Spill/Timer UUIDs are retained; there is no manual cache reset or HomeKit re-pairing step in this migration. During the first restart, logs may report that the plugin name changed and the association is being transformed.
 
 On restart, check that:
 
@@ -63,7 +75,7 @@ On restart, check that:
 
 ### TypeScript migration
 
-Runtime code now lives in `src/` and is compiled as CommonJS for Homebridge. The existing plugin/platform identifiers, accessory UUIDs, custom-characteristic UUIDs and cache field names are retained. HomeKit callbacks use the typed `onGet` / `onSet` API.
+Runtime code now lives in `src/` and is compiled as CommonJS for Homebridge. The plugin identifier is `homebridge-airtouch2plus`; the platform identifier (`Airtouch2`), accessory UUIDs, custom-characteristic UUIDs and cache field names are retained. HomeKit callbacks use the typed `onGet` / `onSet` API.
 
 Configuration, wire statuses, control commands and accessory context have explicit interfaces. Strict checks include unchecked array access, implicit overrides and unused declarations. Methods use PascalCase, except for Homebridge's required `configureAccessory` callback and JavaScript constructors.
 

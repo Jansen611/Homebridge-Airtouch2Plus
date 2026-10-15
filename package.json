@@ -1,5 +1,5 @@
 {
-  "name": "homebridge-airtouch2plus-platform",
+  "name": "homebridge-airtouch2plus",
   "version": "0.0.2",
   "description": "Plugin for homebridge to connect to Airtouch2+ AC controller",
   "main": "dist/index.js",

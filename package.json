@@ -1,5 +1,5 @@
 {
-  "name": "homebridge-airtouch2plus",
+  "name": "@jansen611/homebridge-airtouch2plus",
   "version": "0.0.2",
   "description": "Plugin for homebridge to connect to Airtouch2+ AC controller",
   "main": "dist/index.js",
@@ -13,7 +13,10 @@
     "airtouch",
     "air conditioner"
   ],
-  "author": "lee hadassin <leehadassin@gmail.com>",
+  "author": "Jansen611 (https://github.com/Jansen611)",
+  "contributors": [
+    "lee hadassin <leehadassin@gmail.com>"
+  ],
   "license": "ISC",
   "repository": {
     "type": "git",

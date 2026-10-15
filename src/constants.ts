@@ -1,4 +1,4 @@
-export const PLUGIN_NAME = "homebridge-airtouch2plus";
+export const PLUGIN_NAME = "@jansen611/homebridge-airtouch2plus";
 export const PLATFORM_NAME = "Airtouch2";
 export const SPILL_UUID = "154c4ebb-a16f-488b-8968-2e5bbe15809d";
 export const TIMER_UUID = "2f9bfcd0-00ff-481a-873c-188a2e93d316";

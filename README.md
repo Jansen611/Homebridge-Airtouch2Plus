@@ -1,4 +1,4 @@
-# homebridge-airtouch2plus
+# @jansen611/homebridge-airtouch2plus
 
 Originally based on the homebridge-airtouch2plus-platform plugin by leehadassin; making it compatible with Homebridge 2.4.
 
@@ -27,31 +27,33 @@ npm ci
 npm pack
 ```
 
-Copy the resulting `homebridge-airtouch2plus-0.0.2.tgz` into the Homebridge environment and install it there:
+Copy the resulting `jansen611-homebridge-airtouch2plus-0.0.2.tgz` into the Homebridge environment and install it there:
 
 ```bash
-npm install -g /path/to/homebridge-airtouch2plus-0.0.2.tgz
+npm install -g /path/to/jansen611-homebridge-airtouch2plus-0.0.2.tgz
 ```
 
 This package contains the compiled `dist/` files; TypeScript and Homebridge are development dependencies and are not installed as runtime dependencies. GitHub's automatically generated source archives do not include `dist/` and are not precompiled installation packages.
 
-This fork is named `homebridge-airtouch2plus`. The original registry package is `homebridge-airtouch2plus-platform@0.0.1`. They are separate packages, and both register the `Airtouch2` platform, so only one should be loaded when Homebridge restarts.
+This fork is named **`@jansen611/homebridge-airtouch2plus`**, using npm's lowercase scoped-package syntax. It is distinct from both the original `homebridge-airtouch2plus-platform` package and the unrelated `homebridge-airtouch2plus` package published by dabs79. Homebridge UI queries registry metadata by the full package name; the scope avoids displaying that unrelated package's author, verification badge and updates for this fork.
+
+The scoped package has not been published to npm. Install it from this Git repository or the compiled tarball; GitHub ownership does not automatically reserve an npm scope. Publishing later requires an npm account or organisation with permission to use `@jansen611`. The GitHub repository URL stays the same.
 
 ### Upgrading an existing installation
 
 After this rename has been pushed, install the new package and remove the old package before restarting Homebridge. Use npm in the Homebridge terminal so your existing platform configuration is retained.
 
-For the Docker installation that loads plugins from `/homebridge/node_modules`, run:
+For the installation that loads plugins from `/var/lib/homebridge/node_modules`, run the following commands one at a time, allowing installation to finish before removing the previous package:
 
 ```bash
-npm install --prefix /homebridge --omit=dev "git+https://github.com/Jansen611/Homebridge-Airtouch2Plus.git#main"
-npm uninstall --prefix /homebridge homebridge-airtouch2plus-platform
-node -p "require('/homebridge/node_modules/homebridge-airtouch2plus/package.json').name"
+npm install --prefix /var/lib/homebridge --omit=dev "git+https://github.com/Jansen611/Homebridge-Airtouch2Plus.git#main"
+node -p "require('/var/lib/homebridge/node_modules/@jansen611/homebridge-airtouch2plus/package.json').name"
+npm uninstall --prefix /var/lib/homebridge homebridge-airtouch2plus
 ```
 
-The final command should print `homebridge-airtouch2plus`. For a global installation, use `npm install -g` and `npm uninstall -g` instead, keeping both commands in the same installation location.
+The version-check command should print `@jansen611/homebridge-airtouch2plus`. If the original `homebridge-airtouch2plus-platform` package is still installed, remove that package from the same prefix as well. This removes only the packages; retain your Homebridge configuration and cached accessories. Use the actual plugin installation prefix on your system (for example `/homebridge` in some Docker installations). For a global installation, use `npm install -g` and `npm uninstall -g` instead, keeping both commands in the same installation location.
 
-Keep the platform name as `Airtouch2`, along with your current `ip_address`, `units`, and `_bridge` settings, including the child bridge username and port. If your configuration explicitly qualifies the platform as `homebridge-airtouch2plus-platform.Airtouch2`, change it to `homebridge-airtouch2plus.Airtouch2`. Update any explicit plugin allow/disable lists that reference the old package name.
+Keep the platform name as `Airtouch2`, along with your current `ip_address`, `units`, and `_bridge` settings, including the child bridge username and port. If your configuration explicitly qualifies the platform as `homebridge-airtouch2plus-platform.Airtouch2` or `homebridge-airtouch2plus.Airtouch2`, change it to `@jansen611/homebridge-airtouch2plus.Airtouch2`. Update any explicit plugin allow/disable lists that reference an old package name.
 
 Restart **Homebridge itself** after changing packages so plugin discovery is refreshed. Homebridge 2.4 can reassociate cached accessories from an absent old plugin to the sole active dynamic platform named `Airtouch2`. Accessory names, accessory UUIDs and custom Spill/Timer UUIDs are retained; there is no manual cache reset or HomeKit re-pairing step in this migration. During the first restart, logs may report that the plugin name changed and the association is being transformed.
 
@@ -75,7 +77,7 @@ On restart, check that:
 
 ### TypeScript migration
 
-Runtime code now lives in `src/` and is compiled as CommonJS for Homebridge. The plugin identifier is `homebridge-airtouch2plus`; the platform identifier (`Airtouch2`), accessory UUIDs, custom-characteristic UUIDs and cache field names are retained. HomeKit callbacks use the typed `onGet` / `onSet` API.
+Runtime code now lives in `src/` and is compiled as CommonJS for Homebridge. The plugin identifier is `@jansen611/homebridge-airtouch2plus`; the platform identifier (`Airtouch2`), accessory UUIDs, custom-characteristic UUIDs and cache field names are retained. HomeKit callbacks use the typed `onGet` / `onSet` API.
 
 Configuration, wire statuses, control commands and accessory context have explicit interfaces. Strict checks include unchecked array access, implicit overrides and unused declarations. Methods use PascalCase, except for Homebridge's required `configureAccessory` callback and JavaScript constructors.
 

@@ -3,6 +3,7 @@
         "platform": "Airtouch2",
         "name": "Airtouch2",
         "ip_address": "192.168.0.52",
+        "ac_service_type": "Thermostat",
         "units": [
             {
                 "manufacturer": "LG",

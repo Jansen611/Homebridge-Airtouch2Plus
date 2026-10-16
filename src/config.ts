@@ -11,6 +11,10 @@ function IsFanSpeed(value: unknown): value is FanSpeedName {
 export function ParseConfiguration(configuration: PlatformConfig): AirtouchConfiguration {
     const address: unknown = configuration.ip_address;
     const rawUnits: unknown = configuration.units;
+    const serviceType: unknown = configuration.ac_service_type ?? "Thermostat";
+    if (serviceType !== "Thermostat" && serviceType !== "HeaterCooler") {
+        throw new Error("ac_service_type must be Thermostat or HeaterCooler");
+    }
     if (typeof address !== "string" || address.trim().length === 0) {
         throw new Error("AirTouch requires a non-empty ip_address");
     }
@@ -36,5 +40,5 @@ export function ParseConfiguration(configuration: PlatformConfig): AirtouchConfi
             fan
         };
     });
-    return { ...configuration, ip_address: address.trim(), units };
+    return { ...configuration, ip_address: address.trim(), ac_service_type: serviceType, units };
 }

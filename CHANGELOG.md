@@ -1,14 +1,13 @@
 # Changelog
 
-## 0.0.3
+## 0.0.4 (unreleased)
 
-Documentation-only release; runtime behaviour is unchanged from 0.0.2.
+### Added
 
-### Changed
-
-- Made npm the default installation method with shorter commands.
-- Removed development-time package migration instructions and TypeScript migration notes from the README.
-- Moved compatibility release notes into this changelog and included it in the npm package.
+- Added `ac_service_type` to select `Thermostat` (default) or `HeaterCooler` as the central AC's HomeKit service.
+- Added a Homebridge plugin settings form with a central AC type selector.
+- Added independent power and mode controls for HeaterCooler, with both temperature thresholds reflecting AirTouch's single physical setpoint.
+- Added cached-service replacement when changing AC type, retaining the accessory UUID and Eve history service.
 
 ## 0.0.2
 

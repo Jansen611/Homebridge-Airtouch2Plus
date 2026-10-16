@@ -101,6 +101,19 @@ export class AirtouchAPI extends EventEmitter<ControllerEvents> {
         this.Send(this.EncodeACControl(command));
     }
 
+    // Changes power independently while preserving the controller's selected mode.
+    SetACPower(unitNumber: number, active: boolean): void {
+        this.Send(this.EncodeACControl({
+            ac_unit_number: unitNumber,
+            ac_power_state: active ? AC_POWER.ON : AC_POWER.OFF
+        }));
+    }
+
+    // Changes the controller mode without turning an inactive AC unit on.
+    SetACMode(unitNumber: number, mode: number): void {
+        this.Send(this.EncodeACControl({ ac_unit_number: unitNumber, ac_mode: mode }));
+    }
+
     // Sets the target temperature for the specified AC unit.
     SetACTargetTemperature(unitNumber: number, temperature: number): void {
         this.Send(this.EncodeACControl({

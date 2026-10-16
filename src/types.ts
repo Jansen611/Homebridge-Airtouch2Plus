@@ -2,6 +2,7 @@ import type { Logging, PlatformAccessory, PlatformConfig } from "homebridge" wit
 import type { FAN_SPEED } from "./constants";
 
 export type FanSpeedName = keyof typeof FAN_SPEED;
+export type ACServiceType = "Thermostat" | "HeaterCooler";
 
 export interface UnitConfiguration {
     manufacturer?: string;
@@ -11,6 +12,7 @@ export interface UnitConfiguration {
 
 export interface AirtouchConfiguration extends PlatformConfig {
     ip_address: string;
+    ac_service_type: ACServiceType;
     units: UnitConfiguration[];
     ac_include_temps?: boolean;
 }
@@ -73,6 +75,10 @@ export interface AccessoryContext {
     model: string;
     currentHeatingCoolingState?: number;
     targetHeatingCoolingState?: number;
+    acActive?: boolean;
+    acMode?: number;
+    currentHeaterCoolerState?: number;
+    targetHeaterCoolerState?: number;
     currentTemperature?: number;
     targetTemperature?: number;
     temperatureDisplayUnits?: number;

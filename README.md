@@ -35,10 +35,10 @@ npm ci
 npm pack
 ```
 
-Copy the resulting `jansen611-homebridge-airtouch2plus-0.0.3.tgz` into the Homebridge environment and install it there:
+Copy the resulting `jansen611-homebridge-airtouch2plus-0.0.4.tgz` into the Homebridge environment and install it there:
 
 ```bash
-npm install -g /path/to/jansen611-homebridge-airtouch2plus-0.0.3.tgz
+npm install -g /path/to/jansen611-homebridge-airtouch2plus-0.0.4.tgz
 ```
 
 This package contains the compiled `dist/` files; TypeScript and Homebridge are development dependencies and are not installed as runtime dependencies. GitHub's automatically generated source archives do not include `dist/` and are not precompiled installation packages.
@@ -68,6 +68,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and compatibility fixes.
 		"platform": "Airtouch2",
 		"name": "Airtouch2",
 		"ip_address": "192.168.0.10",
+		"ac_service_type": "Thermostat",
 		"ac_include_temps": false,
 		"units": [
 			{
@@ -87,6 +88,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and compatibility fixes.
 | `platform` | Must be `Airtouch2` |
 | `name` | Name for the platform |
 | `ip_address` | AirTouch 2+ console IP address, found under "System Settings" -> "WiFi Settings", then the three-dots icon -> "Advanced" |
+| `ac_service_type` _(optional)_ | `Thermostat` (default) or `HeaterCooler`, applied to all AC units on the controller; restart the child bridge after changing it |
 | `ac_include_temps` | Retained legacy configuration option; zone temperature sensors are not implemented in this AirTouch 2+ fork |
 | `units` | Array with information about your AC units, containing: |
 | `manufacturer` _(optional)_ | Appears under "Manufacturer" for your AC accessory in the Home app |
@@ -97,11 +99,18 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and compatibility fixes.
 
 #### `AC` - created for each AC unit (e.g. `AC 0`, `AC 1`, ...)
 
-It uses the Homekit `Thermostat` service, and can set AC OFF/HEAT/COOL/AUTO and fan speed. DRY/FAN modes appear as AUTO.
+Choose the central AC service in **Plugins → AirTouch 2+ → Plugin Config → Central AC type**, or set `ac_service_type` in the platform's JSON alongside `ip_address` and `units`. Save and restart the AirTouch child bridge. This changes the actual HomeKit service; the Homebridge accessory dashboard's **Custom Type** setting only changes that dashboard's appearance.
+
+- **Thermostat** (default): combined OFF/HEAT/COOL/AUTO target mode and one target temperature, matching the previous behaviour.
+- **HeaterCooler**: independent on/off and AUTO/HEAT/COOL target mode, plus standard fan-speed support. Changing mode alone preserves the AC's power state. DRY/FAN are represented by the AUTO target mode; separate Dry and Fan-only controls are not exposed.
+
+AirTouch exposes only one temperature setpoint. In HeaterCooler mode, both heating and cooling threshold controls read and write that same setpoint; changing either updates both. This does not implement an independent heating/cooling range in AUTO mode. Reported heating/cooling state is derived from the controller's power and mode, not compressor activity; powered DRY/FAN or an unclassified AUTO state is represented as IDLE.
+
+Switching type retains the AC accessory's UUID and history service, removes the old climate service and creates the selected one. Apple Home may refresh its controls; automations that refer to the previous service may need to be reselected. The plugin does not issue control commands merely because its configured type changes.
 
 There are custom fields such as "Spill Active" and "Timer Set" received from the Airtouch2+ console that are also available only on 3rd party apps.
 
-Thermostat uses FakeGato service for temperature history, available only in the Eve app.
+Both AC service types use FakeGato for temperature history, available in the Eve app.
 
 #### `Zone` - created for each Airtouch group (e.g. `Zone 0`, `Zone 1`, ...)
 

@@ -1,12 +1,12 @@
-import type { API, DynamicPlatformPlugin, HAP, Logging, PlatformAccessory, PlatformConfig } from "homebridge" with { "resolution-mode": "import" };
+import type { API, DynamicPlatformPlugin, HAP, Logging, PlatformAccessory, PlatformConfig, Service } from "homebridge" with { "resolution-mode": "import" };
 import { AirtouchAPI } from "./airtouch-api";
 import { CreateCustomCharacteristics } from "./characteristics";
 import { ParseConfiguration } from "./config";
-import { FAN_SPEED, PLATFORM_NAME, PLUGIN_NAME, ZONE_POWER_STATUS } from "./constants";
+import { AC_MODE, FAN_SPEED, PLATFORM_NAME, PLUGIN_NAME, ZONE_POWER_STATUS } from "./constants";
 import { CreateHistoryFactory } from "./history";
 import type { ACStatus, AirtouchAccessory, AirtouchConfiguration, AccessoryContext, ZoneStatus } from "./types";
 
-// Restores and synchronises the AC thermostat and zone accessories for one controller.
+// Restores and synchronises the selected AC service and zone accessories for one controller.
 export class AirtouchPlatform implements DynamicPlatformPlugin {
     readonly units: Record<string, AirtouchAccessory> = {};
     readonly zones: Record<string, AirtouchAccessory> = {};
@@ -113,15 +113,22 @@ export class AirtouchPlatform implements DynamicPlatformPlugin {
             .setCharacteristic(Characteristic.SerialNumber, `${prefix}-${accessory.context.serial}`);
     }
 
-    // Configures thermostat callbacks, discrete fan speeds and Eve temperature history.
+    // Configures the selected AC service, preserving the accessory UUID and history.
     private SetupACAccessory(accessory: AirtouchAccessory): void {
         const { Characteristic, Service } = this.hap;
         const context = accessory.context;
         const unit = this.config.units[context.serial];
         if (!unit) throw new Error(`Missing configuration for cached AC unit ${context.serial}`);
         this.SetupInformation(accessory, "AC");
-        const thermostat = accessory.getService(Service.Thermostat)
-            ?? accessory.addService(Service.Thermostat, accessory.displayName);
+        const useHeaterCooler = this.config.ac_service_type === "HeaterCooler";
+        const obsoleteService = accessory.getService(useHeaterCooler ? Service.Thermostat : Service.HeaterCooler);
+        if (obsoleteService) {
+            obsoleteService.setPrimaryService(false);
+            accessory.removeService(obsoleteService);
+        }
+        const serviceType = useHeaterCooler ? Service.HeaterCooler : Service.Thermostat;
+        const climateService = accessory.getService(serviceType)
+            ?? accessory.addService(serviceType, accessory.displayName);
 
         context.currentHeatingCoolingState ??= Characteristic.CurrentHeatingCoolingState.OFF;
         context.targetHeatingCoolingState ??= Characteristic.TargetHeatingCoolingState.OFF;
@@ -135,42 +142,34 @@ export class AirtouchPlatform implements DynamicPlatformPlugin {
         context.fan_speeds = unit.fan;
         context.rotation_step = Math.floor(100 / (unit.fan.length - 1));
 
-        thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
-            .onGet(() => context.currentHeatingCoolingState!);
-        thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState)
-            .onGet(() => context.targetHeatingCoolingState!)
-            .onSet(value => this.SetACHeatingCoolingState(accessory, Number(value)));
-        thermostat.getCharacteristic(Characteristic.CurrentTemperature)
+        if (useHeaterCooler) this.SetupHeaterCoolerControls(accessory, climateService);
+        else this.SetupThermostatControls(accessory, climateService);
+        climateService.getCharacteristic(Characteristic.CurrentTemperature)
             .onGet(() => context.currentTemperature!);
-        thermostat.getCharacteristic(Characteristic.TargetTemperature)
-            .updateValue(context.targetTemperature)
-            .setProps({ minStep: 1, minValue: 14, maxValue: 29 })
-            .onGet(() => context.targetTemperature!)
-            .onSet(value => this.SetACTargetTemperature(accessory, Number(value)));
-        thermostat.getCharacteristic(Characteristic.TemperatureDisplayUnits)
+        climateService.getCharacteristic(Characteristic.TemperatureDisplayUnits)
             .onGet(() => context.temperatureDisplayUnits!)
             .onSet(value => { context.temperatureDisplayUnits = Number(value); });
-        thermostat.getCharacteristic(Characteristic.Name).onGet(() => accessory.displayName);
+        climateService.getCharacteristic(Characteristic.Name).onGet(() => accessory.displayName);
 
-        const fan = thermostat.testCharacteristic(Characteristic.RotationSpeed)
-            ? thermostat.getCharacteristic(Characteristic.RotationSpeed)
-            : thermostat.addCharacteristic(Characteristic.RotationSpeed);
+        const fan = climateService.testCharacteristic(Characteristic.RotationSpeed)
+            ? climateService.getCharacteristic(Characteristic.RotationSpeed)
+            : climateService.addCharacteristic(Characteristic.RotationSpeed);
         fan.setProps({ minStep: context.rotation_step, minValue: 0, maxValue: context.rotation_step * (unit.fan.length - 1) })
             .onGet(() => context.rotationSpeed!)
             .onSet(value => this.SetACRotationSpeed(accessory, Number(value)));
-        const fault = thermostat.testCharacteristic(Characteristic.StatusFault)
-            ? thermostat.getCharacteristic(Characteristic.StatusFault)
-            : thermostat.addCharacteristic(Characteristic.StatusFault);
+        const fault = climateService.testCharacteristic(Characteristic.StatusFault)
+            ? climateService.getCharacteristic(Characteristic.StatusFault)
+            : climateService.addCharacteristic(Characteristic.StatusFault);
         fault.onGet(() => context.statusFault!);
-        const spill = thermostat.testCharacteristic(this.custom.SpillStatus)
-            ? thermostat.getCharacteristic(this.custom.SpillStatus)
-            : thermostat.addCharacteristic(this.custom.SpillStatus);
+        const spill = climateService.testCharacteristic(this.custom.SpillStatus)
+            ? climateService.getCharacteristic(this.custom.SpillStatus)
+            : climateService.addCharacteristic(this.custom.SpillStatus);
         spill.onGet(() => context.spillStatus!);
-        const timer = thermostat.testCharacteristic(this.custom.TimerStatus)
-            ? thermostat.getCharacteristic(this.custom.TimerStatus)
-            : thermostat.addCharacteristic(this.custom.TimerStatus);
+        const timer = climateService.testCharacteristic(this.custom.TimerStatus)
+            ? climateService.getCharacteristic(this.custom.TimerStatus)
+            : climateService.addCharacteristic(this.custom.TimerStatus);
         timer.onGet(() => context.timerStatus!);
-        thermostat.setPrimaryService(true);
+        climateService.setPrimaryService(true);
 
         accessory.log = this.log;
         accessory.historyService = new this.HistoryService("thermo", accessory, { storage: "fs" });
@@ -178,11 +177,70 @@ export class AirtouchPlatform implements DynamicPlatformPlugin {
         this.log(`Finished creating accessory [${accessory.displayName}]`);
     }
 
+    // Exposes the original thermostat's combined power/mode and single target temperature.
+    private SetupThermostatControls(accessory: AirtouchAccessory, service: Service): void {
+        const { Characteristic } = this.hap;
+        const context = accessory.context;
+        service.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
+            .onGet(() => context.currentHeatingCoolingState!);
+        service.getCharacteristic(Characteristic.TargetHeatingCoolingState)
+            .onGet(() => context.targetHeatingCoolingState!)
+            .onSet(value => this.SetACHeatingCoolingState(accessory, Number(value)));
+        service.getCharacteristic(Characteristic.TargetTemperature)
+            .updateValue(context.targetTemperature!)
+            .setProps({ minStep: 1, minValue: 14, maxValue: 29 })
+            .onGet(() => context.targetTemperature!)
+            .onSet(value => this.SetACTargetTemperature(accessory, Number(value)));
+    }
+
+    // Exposes independent power/mode controls and mirrors the controller's single setpoint.
+    private SetupHeaterCoolerControls(accessory: AirtouchAccessory, service: Service): void {
+        const { Characteristic } = this.hap;
+        const context = accessory.context;
+        context.acActive ??= context.targetHeatingCoolingState !== Characteristic.TargetHeatingCoolingState.OFF;
+        context.acMode ??= context.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.HEAT ? AC_MODE.HEAT
+            : context.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.COOL ? AC_MODE.COOL : AC_MODE.AUTO;
+        this.UpdateHeaterCoolerContext(context);
+        service.getCharacteristic(Characteristic.Active)
+            .onGet(() => context.acActive ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE)
+            .onSet(value => this.SetACActive(accessory, Number(value) === Characteristic.Active.ACTIVE));
+        service.getCharacteristic(Characteristic.CurrentHeaterCoolerState)
+            .onGet(() => context.currentHeaterCoolerState!);
+        service.getCharacteristic(Characteristic.TargetHeaterCoolerState)
+            .onGet(() => context.targetHeaterCoolerState!)
+            .onSet(value => this.SetACTargetHeaterCoolerState(accessory, Number(value)));
+        // AirTouch provides one target temperature, not an independent auto-mode range.
+        for (const threshold of [Characteristic.HeatingThresholdTemperature, Characteristic.CoolingThresholdTemperature]) {
+            service.getCharacteristic(threshold)
+                .setProps({ minValue: 0, maxValue: 29 })
+                .updateValue(context.targetTemperature!)
+                .setProps({ minStep: 1, minValue: 14, maxValue: 29 })
+                .onGet(() => context.targetTemperature!)
+                .onSet(value => this.SetACTargetTemperature(accessory, Number(value)));
+        }
+    }
+
+    // Maps the reported power and mode to HeaterCooler states, without inferring compressor telemetry.
+    private UpdateHeaterCoolerContext(context: AccessoryContext): void {
+        const { Characteristic } = this.hap;
+        context.targetHeaterCoolerState = context.acMode === AC_MODE.HEAT ? Characteristic.TargetHeaterCoolerState.HEAT
+            : context.acMode === AC_MODE.COOL ? Characteristic.TargetHeaterCoolerState.COOL
+                : Characteristic.TargetHeaterCoolerState.AUTO;
+        context.currentHeaterCoolerState = !context.acActive ? Characteristic.CurrentHeaterCoolerState.INACTIVE
+            : context.acMode === AC_MODE.HEAT || context.acMode === 8 ? Characteristic.CurrentHeaterCoolerState.HEATING
+                : context.acMode === AC_MODE.COOL || context.acMode === 9 ? Characteristic.CurrentHeaterCoolerState.COOLING
+                    : Characteristic.CurrentHeaterCoolerState.IDLE;
+    }
+
     // Maps AC status to legal HomeKit values without invoking command setters.
     private UpdateACAccessory(accessory: AirtouchAccessory, status: ACStatus): void {
         const { Characteristic, Service } = this.hap;
-        const thermostat = accessory.getService(Service.Thermostat)!;
+        const useHeaterCooler = this.config.ac_service_type === "HeaterCooler";
+        const climateService = accessory.getService(useHeaterCooler ? Service.HeaterCooler : Service.Thermostat)!;
         const context = accessory.context;
+        context.acActive = status.ac_power_state !== 0;
+        context.acMode = status.ac_mode;
+        this.UpdateHeaterCoolerContext(context);
         context.currentHeatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
         context.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
         if (status.ac_power_state !== 0) {
@@ -203,14 +261,22 @@ export class AirtouchPlatform implements DynamicPlatformPlugin {
         context.spillStatus = Boolean(status.ac_spill);
         context.timerStatus = Boolean(status.ac_timer_set);
 
-        thermostat.updateCharacteristic(Characteristic.CurrentHeatingCoolingState, context.currentHeatingCoolingState);
-        thermostat.updateCharacteristic(Characteristic.TargetHeatingCoolingState, context.targetHeatingCoolingState);
-        thermostat.updateCharacteristic(Characteristic.CurrentTemperature, context.currentTemperature);
-        thermostat.updateCharacteristic(Characteristic.TargetTemperature, context.targetTemperature);
-        thermostat.updateCharacteristic(Characteristic.RotationSpeed, context.rotationSpeed);
-        thermostat.updateCharacteristic(Characteristic.StatusFault, context.statusFault);
-        thermostat.updateCharacteristic(this.custom.SpillStatus, context.spillStatus);
-        thermostat.updateCharacteristic(this.custom.TimerStatus, context.timerStatus);
+        if (useHeaterCooler) {
+            climateService.updateCharacteristic(Characteristic.Active, context.acActive ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE);
+            climateService.updateCharacteristic(Characteristic.CurrentHeaterCoolerState, context.currentHeaterCoolerState!);
+            climateService.updateCharacteristic(Characteristic.TargetHeaterCoolerState, context.targetHeaterCoolerState!);
+            climateService.updateCharacteristic(Characteristic.HeatingThresholdTemperature, context.targetTemperature);
+            climateService.updateCharacteristic(Characteristic.CoolingThresholdTemperature, context.targetTemperature);
+        } else {
+            climateService.updateCharacteristic(Characteristic.CurrentHeatingCoolingState, context.currentHeatingCoolingState);
+            climateService.updateCharacteristic(Characteristic.TargetHeatingCoolingState, context.targetHeatingCoolingState);
+            climateService.updateCharacteristic(Characteristic.TargetTemperature, context.targetTemperature);
+        }
+        climateService.updateCharacteristic(Characteristic.CurrentTemperature, context.currentTemperature);
+        climateService.updateCharacteristic(Characteristic.RotationSpeed, context.rotationSpeed);
+        climateService.updateCharacteristic(Characteristic.StatusFault, context.statusFault);
+        climateService.updateCharacteristic(this.custom.SpillStatus, context.spillStatus);
+        climateService.updateCharacteristic(this.custom.TimerStatus, context.timerStatus);
 
         const now = Date.now() / 1000;
         if (now - (accessory.historyUpdate ?? 0) > 285) {
@@ -276,6 +342,29 @@ export class AirtouchPlatform implements DynamicPlatformPlugin {
         if (accessory.context.targetTemperature === temperature) return;
         this.api.SetACTargetTemperature(accessory.context.serial, temperature);
         accessory.context.targetTemperature = temperature;
+        const heaterCooler = accessory.getService(this.hap.Service.HeaterCooler);
+        if (heaterCooler) {
+            heaterCooler.updateCharacteristic(this.hap.Characteristic.HeatingThresholdTemperature, temperature);
+            heaterCooler.updateCharacteristic(this.hap.Characteristic.CoolingThresholdTemperature, temperature);
+        }
+    }
+
+    // Applies HeaterCooler's power control without changing the selected mode.
+    private SetACActive(accessory: AirtouchAccessory, active: boolean): void {
+        if (accessory.context.acActive === active) return;
+        this.api.SetACPower(accessory.context.serial, active);
+        accessory.context.acActive = active;
+    }
+
+    // Applies HeaterCooler's target mode without implicitly changing power.
+    private SetACTargetHeaterCoolerState(accessory: AirtouchAccessory, state: number): void {
+        if (accessory.context.targetHeaterCoolerState === state) return;
+        const { TargetHeaterCoolerState } = this.hap.Characteristic;
+        const mode = state === TargetHeaterCoolerState.HEAT ? AC_MODE.HEAT
+            : state === TargetHeaterCoolerState.COOL ? AC_MODE.COOL : AC_MODE.AUTO;
+        this.api.SetACMode(accessory.context.serial, mode);
+        accessory.context.acMode = mode;
+        accessory.context.targetHeaterCoolerState = state;
     }
 
     // Converts HomeKit's fan percentage to a configured discrete controller speed.

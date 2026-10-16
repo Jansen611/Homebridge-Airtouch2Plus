@@ -1,0 +1,60 @@
+{
+  "pluginAlias": "Airtouch2",
+  "pluginType": "platform",
+  "name": "AirTouch 2+",
+  "schema": {
+    "type": "object",
+    "required": ["ip_address", "units"],
+    "properties": {
+      "name": {
+        "title": "Platform name",
+        "type": "string",
+        "default": "Airtouch2"
+      },
+      "ip_address": {
+        "title": "Controller IP address",
+        "type": "string",
+        "minLength": 1,
+        "description": "The local IP address of your AirTouch 2+ controller."
+      },
+      "ac_service_type": {
+        "title": "Central AC type",
+        "type": "string",
+        "enum": ["Thermostat", "HeaterCooler"],
+        "default": "Thermostat",
+        "description": "Selects the actual HomeKit service for all AC units on this controller. Restart the child bridge after saving. HeaterCooler uses one shared temperature setpoint for both heating and cooling."
+      },
+      "units": {
+        "title": "AC units",
+        "type": "array",
+        "minItems": 1,
+        "description": "List units in controller-number order, starting with AC 0.",
+        "items": {
+          "type": "object",
+          "required": ["fan"],
+          "properties": {
+            "manufacturer": {
+              "title": "Manufacturer",
+              "type": "string"
+            },
+            "model": {
+              "title": "Model",
+              "type": "string"
+            },
+            "fan": {
+              "title": "Supported fan speeds",
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "default": ["AUTO", "LOW", "MEDIUM", "HIGH"],
+              "items": {
+                "type": "string",
+                "enum": ["AUTO", "QUIET", "LOW", "MEDIUM", "HIGH", "POWERFUL", "TURBO"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

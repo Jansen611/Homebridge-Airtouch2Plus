@@ -35,10 +35,10 @@ npm ci
 npm pack
 ```
 
-Copy the resulting `jansen611-homebridge-airtouch2plus-0.0.2.tgz` into the Homebridge environment and install it there:
+Copy the resulting `jansen611-homebridge-airtouch2plus-0.0.3.tgz` into the Homebridge environment and install it there:
 
 ```bash
-npm install -g /path/to/jansen611-homebridge-airtouch2plus-0.0.2.tgz
+npm install -g /path/to/jansen611-homebridge-airtouch2plus-0.0.3.tgz
 ```
 
 This package contains the compiled `dist/` files; TypeScript and Homebridge are development dependencies and are not installed as runtime dependencies. GitHub's automatically generated source archives do not include `dist/` and are not precompiled installation packages.

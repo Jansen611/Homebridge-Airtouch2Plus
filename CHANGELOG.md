@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.3
+
+Documentation-only release; runtime behaviour is unchanged from 0.0.2.
+
+### Changed
+
+- Made npm the default installation method with shorter commands.
+- Removed development-time package migration instructions and TypeScript migration notes from the README.
+- Moved compatibility release notes into this changelog and included it in the npm package.
+
 ## 0.0.2
 
 First public npm release of `@jansen611/homebridge-airtouch2plus`.

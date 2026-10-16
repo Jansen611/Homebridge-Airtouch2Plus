@@ -1,13 +1,13 @@
 # Changelog
 
-## 0.0.5 (unreleased)
+## 0.0.5
 
 ### Changed
 
 - Replaced each zone's Switch and Window services with a single Fanv2 service, so damper openings are no longer presented as windows in Apple Home.
 - Mapped zone power to Active and damper opening to RotationSpeed, retaining independent power/opening state and the existing zone accessory UUIDs.
 
-## 0.0.4 (GitHub test build)
+## 0.0.4
 
 ### Added
 

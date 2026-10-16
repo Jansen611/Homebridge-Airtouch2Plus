@@ -35,10 +35,10 @@ npm ci
 npm pack
 ```
 
-Copy the resulting `jansen611-homebridge-airtouch2plus-0.0.4.tgz` into the Homebridge environment and install it there:
+Copy the resulting `jansen611-homebridge-airtouch2plus-0.0.5.tgz` into the Homebridge environment and install it there:
 
 ```bash
-npm install -g /path/to/jansen611-homebridge-airtouch2plus-0.0.4.tgz
+npm install -g /path/to/jansen611-homebridge-airtouch2plus-0.0.5.tgz
 ```
 
 This package contains the compiled `dist/` files; TypeScript and Homebridge are development dependencies and are not installed as runtime dependencies. GitHub's automatically generated source archives do not include `dist/` and are not precompiled installation packages.
@@ -53,7 +53,7 @@ On restart, check that:
 
 - The plugin reports the installed release version, connects to the AirTouch controller and updates `AC 0` and all configured zones.
 - The child bridge continues running after status messages arrive, without `updateReachability`, custom-characteristic or serial-number errors.
-- In Apple Home, AC on/off, heating/cooling, target temperature, main fan speed, zone switches and damper percentages work.
+- In Apple Home, AC on/off, heating/cooling, target temperature, main fan speed, and zone fan on/off and opening percentages work.
 - Changes from the wall panel or original AirTouch app are reflected in Apple Home. A zone in turbo mode should appear on.
 
 ## Changelog
@@ -114,7 +114,11 @@ Both AC service types use FakeGato for temperature history, available in the Eve
 
 #### `Zone` - created for each Airtouch group (e.g. `Zone 0`, `Zone 1`, ...)
 
-It uses 2 Homekit services:
+Each zone uses one HomeKit `Fanv2` service:
 
-* `Switch` - to turn the zone ON/OFF.
-* `Window` - models the damper opening percentage in 5% increments. This fork exposes percentage control; it does not implement zone thermostats or temperature-control obstruction reporting.
+* `Active` controls whether the zone is enabled.
+* `RotationSpeed` represents the damper opening from 0 to 100% in 5% steps. It is not a separate fan motor speed, measured airflow, or the central AC's LOW/MEDIUM/HIGH setting.
+
+Zone power and damper opening remain independent. Turning a zone off retains its opening setting. Changing its percentage requests only a damper adjustment; the plugin does not automatically switch the zone or central AC on. Incoming controller status remains authoritative, including any power changes applied by the controller itself. An enabled zone can still have no airflow while the central AC is off.
+
+Existing zone accessory UUIDs and controller identifiers are retained. On restart, the plugin replaces its old Switch and Window services with Fanv2, so these zones no longer advertise windows to Apple Home. Automations targeting the old switch/window services may need to be recreated or reselected, and custom icons may refresh. Zone thermostats and temperature-control obstruction reporting are not implemented.

@@ -289,42 +289,44 @@ export class AirtouchPlatform implements DynamicPlatformPlugin {
         this.log(`Finished updating accessory [${accessory.displayName}]`);
     }
 
-    // Configures zone switches and window-style damper controls using the existing services.
+    // Replaces legacy switch/window controls with one fan service per zone.
     private SetupZoneAccessory(accessory: AirtouchAccessory): void {
         const { Characteristic, Service } = this.hap;
         const context = accessory.context;
         this.SetupInformation(accessory, "Zone");
-        context.active ??= false;
+        context.active = Boolean(context.active);
         context.damperPosition ??= 0;
-        const zone = accessory.getService(Service.Switch) ?? accessory.addService(Service.Switch, accessory.displayName);
-        zone.getCharacteristic(Characteristic.On)
-            .onGet(() => context.active!)
-            .onSet(value => this.SetZoneActive(accessory, Boolean(value)));
-        zone.getCharacteristic(Characteristic.Name).onGet(() => accessory.displayName);
-        zone.setPrimaryService(true);
-        const damper = accessory.getService(Service.Window)
-            ?? accessory.addService(Service.Window, `${accessory.displayName} Damper`);
-        damper.getCharacteristic(Characteristic.CurrentPosition).onGet(() => context.damperPosition!);
-        damper.getCharacteristic(Characteristic.TargetPosition)
+        const obsoleteServices = accessory.services.filter(service =>
+            service.UUID === Service.Switch.UUID || service.UUID === Service.Window.UUID);
+        for (const obsoleteService of obsoleteServices) {
+            for (const service of accessory.services) service.removeLinkedService(obsoleteService);
+            obsoleteService.setPrimaryService(false);
+            accessory.removeService(obsoleteService);
+        }
+        const zone = accessory.getService(Service.Fanv2) ?? accessory.addService(Service.Fanv2, accessory.displayName);
+        zone.getCharacteristic(Characteristic.Active)
+            .updateValue(context.active ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE)
+            .onGet(() => context.active ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE)
+            .onSet(value => this.SetZoneActive(accessory, Number(value) === Characteristic.Active.ACTIVE));
+        zone.getCharacteristic(Characteristic.RotationSpeed)
             .setProps({ minStep: 5, minValue: 0, maxValue: 100 })
+            .updateValue(context.damperPosition)
             .onGet(() => context.damperPosition!)
             .onSet(value => this.SetZoneDamperPosition(accessory, Number(value)));
-        damper.getCharacteristic(Characteristic.PositionState).onGet(() => Characteristic.PositionState.STOPPED);
-        damper.getCharacteristic(Characteristic.Name).onGet(() => `${accessory.displayName} Damper`);
-        zone.addLinkedService(damper);
+        zone.getCharacteristic(Characteristic.Name).onGet(() => accessory.displayName);
+        zone.setPrimaryService(true);
         this.log(`Finished creating accessory [${accessory.displayName}]`);
     }
 
-    // Synchronises a zone switch and damper without writing back to the controller.
+    // Synchronises fan activity and damper opening without writing back to the controller.
     private UpdateZoneAccessory(accessory: AirtouchAccessory, status: ZoneStatus): void {
         const { Characteristic, Service } = this.hap;
         const context = accessory.context;
         context.active = status.group_power_state === ZONE_POWER_STATUS.ON || status.group_power_state === ZONE_POWER_STATUS.TURBO;
         context.damperPosition = status.group_damper_position;
-        accessory.getService(Service.Switch)!.updateCharacteristic(Characteristic.On, context.active);
-        const damper = accessory.getService(Service.Window)!;
-        damper.updateCharacteristic(Characteristic.CurrentPosition, context.damperPosition);
-        damper.updateCharacteristic(Characteristic.TargetPosition, context.damperPosition);
+        const zone = accessory.getService(Service.Fanv2)!;
+        zone.updateCharacteristic(Characteristic.Active, context.active ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE);
+        zone.updateCharacteristic(Characteristic.RotationSpeed, context.damperPosition);
         this.log(`Finished updating accessory [${accessory.displayName}]`);
     }
 
@@ -377,14 +379,14 @@ export class AirtouchPlatform implements DynamicPlatformPlugin {
         context.rotationSpeed = percentage;
     }
 
-    // Applies a HomeKit zone switch command to the controller.
+    // Applies a zone fan's power command while retaining its damper setting.
     private SetZoneActive(accessory: AirtouchAccessory, active: boolean): void {
         if (accessory.context.active === active) return;
         this.api.SetZoneActive(accessory.context.serial, active);
         accessory.context.active = active;
     }
 
-    // Applies a HomeKit damper command and keeps subsequent reads consistent.
+    // Applies a zone fan's percentage to its damper without changing zone or AC power.
     private SetZoneDamperPosition(accessory: AirtouchAccessory, position: number): void {
         if (accessory.context.damperPosition === position) return;
         this.api.SetZoneDamperPosition(accessory.context.serial, position);

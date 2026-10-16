@@ -4,3 +4,4 @@ test/
 *.tgz
 .env
 .DS_Store
+.vscode/

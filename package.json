@@ -6,6 +6,7 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
+    "LICENSE",
     "CHANGELOG.md",
     "config.schema.json",
     "config.sample.json"
@@ -19,7 +20,7 @@
   "contributors": [
     "lee hadassin <leehadassin@gmail.com>"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Jansen611/Homebridge-Airtouch2Plus.git"

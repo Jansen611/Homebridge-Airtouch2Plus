@@ -1,8 +1,6 @@
-# @jansen611/homebridge-airtouch2plus
+# homebridge-airtouch2plus
 
-Originally based on the homebridge-airtouch2plus-platform plugin by leehadassin; making it compatible with Homebridge 2.4.
-
-#### Homebridge plugin for the Airtouch2+ AC Controller
+Originally based on the homebridge-airtouch2plus-platform plugin by leehadassin; making it compatible with Homebridge 2.4. Available in npm on package name `@jansen611/homebridge-airtouch2plus`. This is a Homebridge plugin for the Airtouch2+ AC Controller.
 
 ## Installation
 
@@ -26,27 +24,6 @@ Run the local installation commands below from that same Homebridge directory. F
 npm install -g @jansen611/homebridge-airtouch2plus
 ```
 
-### Building an installation tarball
-
-For a precompiled installation, build a package from a local checkout:
-
-```bash
-npm ci
-npm pack
-```
-
-Copy the resulting `jansen611-homebridge-airtouch2plus-0.0.5.tgz` into the Homebridge environment and install it there:
-
-```bash
-npm install -g /path/to/jansen611-homebridge-airtouch2plus-0.0.5.tgz
-```
-
-This package contains the compiled `dist/` files; TypeScript and Homebridge are development dependencies and are not installed as runtime dependencies. GitHub's automatically generated source archives do not include `dist/` and are not precompiled installation packages.
-
-This fork is named **`@jansen611/homebridge-airtouch2plus`**, using npm's lowercase scoped-package syntax. It is distinct from both the original `homebridge-airtouch2plus-platform` package and the unrelated `homebridge-airtouch2plus` package published by dabs79. Homebridge UI queries registry metadata by the full package name; the scope avoids displaying that unrelated package's author, verification badge and updates for this fork.
-
-Public npm releases are published under the `@jansen611` scope. Homebridge UI can retrieve the maintainer and available release versions using this full package name.
-
 ### Verifying the installation
 
 On restart, check that:
@@ -55,10 +32,6 @@ On restart, check that:
 - The child bridge continues running after status messages arrive, without `updateReachability`, custom-characteristic or serial-number errors.
 - In Apple Home, AC on/off, heating/cooling, target temperature, main fan speed, and zone fan on/off and opening percentages work.
 - Changes from the wall panel or original AirTouch app are reflected in Apple Home. A zone in turbo mode should appear on.
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for release notes and compatibility fixes.
 
 ## Configuration example
 
@@ -122,3 +95,11 @@ Each zone uses one HomeKit `Fanv2` service:
 Zone power and damper opening remain independent. Turning a zone off retains its opening setting. Changing its percentage requests only a damper adjustment; the plugin does not automatically switch the zone or central AC on. Incoming controller status remains authoritative, including any power changes applied by the controller itself. An enabled zone can still have no airflow while the central AC is off.
 
 Existing zone accessory UUIDs and controller identifiers are retained. On restart, the plugin replaces its old Switch and Window services with Fanv2, so these zones no longer advertise windows to Apple Home. Automations targeting the old switch/window services may need to be recreated or reselected, and custom icons may refresh. Zone thermostats and temperature-control obstruction reporting are not implemented.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes and compatibility fixes.
+
+## License
+
+This project is distributed under the [MIT License](LICENSE).

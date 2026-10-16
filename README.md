@@ -1,4 +1,4 @@
-# homebridge-airtouch2plus
+# Homebridge-Airtouch2Plus
 
 Originally based on the homebridge-airtouch2plus-platform plugin by leehadassin; making it compatible with Homebridge 2.4. Available in npm on package name `@jansen611/homebridge-airtouch2plus`. This is a Homebridge plugin for the Airtouch2+ AC Controller.
 
@@ -98,7 +98,7 @@ Existing zone accessory UUIDs and controller identifiers are retained. On restar
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for release notes and compatibility fixes.
+See [CHANGELOG](CHANGELOG.md) for release notes and compatibility fixes.
 
 ## License
 
